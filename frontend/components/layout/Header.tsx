@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuthStore } from '@/store/useAuthStore';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,14 +14,31 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bell, LogOut, User, Settings } from 'lucide-react';
 import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
 
 import { useDisconnect } from 'wagmi';
 import { web3auth } from '@/lib/web3auth';
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { getDashboardBreadcrumbs } from '@/lib/breadcrumbs';
 
 export function Header() {
   const { name, email, address, logout } = useAuthStore();
   const { disconnect } = useDisconnect();
   const router = useRouter();
+  const pathname = usePathname();
+  const [breadcrumbs, setBreadcrumbs] = useState<any[]>([]);
+
+  useEffect(() => {
+    const items = getDashboardBreadcrumbs(pathname);
+    setBreadcrumbs(items);
+  }, [pathname]);
 
   const handleLogout = async () => {
     disconnect();
@@ -99,7 +116,28 @@ export function Header() {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Breadcrumb Navigation */}
+      {breadcrumbs.length > 0 && (
+        <div className="border-t border-gray-100 bg-gray-50/50 px-4 sm:px-6 py-3">
+          <Breadcrumb>
+            <BreadcrumbList>
+              {breadcrumbs.map((item, index) => (
+                <div key={index} className="flex items-center gap-1.5">
+                  <BreadcrumbItem>
+                    <BreadcrumbLink href={item.href}>
+                      {item.label}
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
+                </div>
+              ))}
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      )}
     </header>
   );
 }
+
 

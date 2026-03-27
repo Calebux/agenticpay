@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, ExternalLink, Download } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PageBreadcrumb } from '@/components/layout/PageBreadcrumb';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -48,6 +49,14 @@ export default function InvoiceDetailPage() {
 
   return (
     <div className="space-y-6">
+      <PageBreadcrumb
+        items={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Invoices', href: '/dashboard/invoices' },
+        ]}
+        currentPage={`Invoice ${rawId}`}
+      />
+
       <Link href="/dashboard/invoices">
         <Button variant="ghost" className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
