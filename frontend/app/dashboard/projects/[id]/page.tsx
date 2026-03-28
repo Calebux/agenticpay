@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { formatDateInTimeZone } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
+import { PageBreadcrumb } from '@/components/layout/PageBreadcrumb';
+import { OfflineActionQueuedError } from '@/lib/offline';
 
 export default function ProjectDetailPage() {
   const params = useParams();

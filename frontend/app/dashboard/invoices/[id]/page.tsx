@@ -13,6 +13,7 @@ import {
   formatTimeInTimeZone,
 } from '@/lib/utils';
 import { useAuthStore } from '@/store/useAuthStore';
+import { PageBreadcrumb } from '@/components/layout/PageBreadcrumb';
 
 export default function InvoiceDetailPage() {
   const params = useParams();

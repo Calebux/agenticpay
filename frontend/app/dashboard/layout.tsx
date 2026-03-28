@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -15,6 +16,9 @@ export default function DashboardLayout({
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const router = useRouter();
   const pathname = usePathname();
+
+  const mainRef = React.useRef<HTMLDivElement>(null);
+  const scrollPositions = React.useRef<Record<string, number>>({});
 
   useEffect(() => {
     if (!isAuthenticated) {
