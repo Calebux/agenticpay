@@ -21,7 +21,6 @@ import {
   Settings,
   Sun,
   Moon,
-  Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDisconnect, useAccount } from 'wagmi';
@@ -95,8 +94,9 @@ export function Header() {
 
   /* -------- Breadcrumbs -------- */
   useEffect(() => {
+    // Wrap setBreadcrumbs in requestAnimationFrame to avoid synchronous state update warning
     const items = getDashboardBreadcrumbs(pathname);
-    setBreadcrumbs(items);
+    requestAnimationFrame(() => setBreadcrumbs(items));
   }, [pathname]);
 
   /* -------- Timezone detection (SAFE) -------- */
