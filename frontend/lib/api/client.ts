@@ -198,12 +198,10 @@ export async function apiCall<T = unknown>(
 
       // Queue request if offline
       if (shouldQueue && isLikelyOfflineError(lastError)) {
-        // @ts-expect-error - Bypassing type check for offline action queueing
         const action = queueOfflineAction(endpoint, options);
         throw new OfflineActionQueuedError(
           'Network unavailable. Request queued.',
           endpoint,
-          // @ts-expect-error - action.id may not be correctly typed
           action.id
         );
       }
