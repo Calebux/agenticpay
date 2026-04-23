@@ -30,6 +30,8 @@ import { backupRouter } from './routes/backup.js';
 import { pushRouter } from './routes/push.js';
 import { ipAllowlistRouter } from './routes/ip-allowlist.js';
 import { ipAllowlistMiddleware, initIpAllowlist } from './middleware/ip-allowlist.js';
+import { sessionsRouter } from './routes/sessions.js';
+import { sessionMiddleware } from './middleware/session.js';
 
 // Validate environment variables at startup
 validateEnv();
@@ -203,6 +205,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use(slaTrackingMiddleware);
+app.use(sessionMiddleware);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -241,6 +244,8 @@ apiV1Router.use('/backup', backupRouter);
 apiV1Router.use('/ip-allowlist', ipAllowlistRouter);
 // Push notifications
 apiV1Router.use('/push', pushRouter);
+// Session management
+apiV1Router.use('/sessions', sessionsRouter);
 
 app.use('/api/v1', ipAllowlistMiddleware(), apiV1Router);
 
