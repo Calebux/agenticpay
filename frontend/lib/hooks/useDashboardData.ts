@@ -29,7 +29,9 @@ export interface DashboardPayment {
     status: 'completed' | 'pending' | 'failed';
     timestamp: string;
     transactionHash?: string;
-    type: 'milestone_payment' | 'full_payment';
+    type: 'milestone_payment' | 'full_payment' | 'refund';
+    category: string;
+    description: string;
 }
 
 export function useDashboardData() {
@@ -90,22 +92,38 @@ export function useDashboardData() {
 
         // Payments Logic
         if (project.status === 'completed') {
+            const description = project.description || project.title || '';
+            const amount = parseFloat(project.totalAmount) || 0;
+            
+            // Basic client-side auto-categorization matching backend logic
+            let category = 'uncategorized';
+            const desc = description.toLowerCase();
+            if (desc.includes('subscription')) category = 'subscription';
+            else if (desc.includes('invoice')) category = 'invoice';
+            else if (desc.includes('donation')) category = 'donation';
+            else if (desc.includes('refund')) category = 'refund';
+            else if (desc.includes('payroll')) category = 'payroll';
+            else if (desc.includes('software')) category = 'software';
+            else if (desc.includes('infrastructure')) category = 'infrastructure';
+
             payments.push({
                 id: `PAY-${project.id}`,
                 projectTitle: project.title,
+                description: description,
                 amount: project.totalAmount,
                 currency: project.currency,
                 status: 'completed',
-                timestamp: new Date().toISOString(), // we don't have completedAt in hook yet?
-                type: 'full_payment'
+                timestamp: new Date().toISOString(),
+                type: 'full_payment',
+                category: category
             });
 
             // Add to activity
             recentActivity.push({
                 type: 'payment',
                 title: 'Payment received',
-                description: `${project.totalAmount} ${project.currency} from ${isFreelancer ? 'Client' : 'Freelancer'}`, // text slightly off strictly speaking
-                time: 'Recently', // needs real timestamp
+                description: `${project.totalAmount} ${project.currency} for ${project.title} (${category})`,
+                time: 'Recently',
                 amount: project.totalAmount
             });
         }

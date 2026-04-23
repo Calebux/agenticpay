@@ -57,5 +57,35 @@ export const api = {
         return apiCall(`/verification/${id}`, {
             method: 'GET',
         });
+    },
+
+    /**
+     * Categories API
+     */
+    categories: {
+        getDefinitions: async () => {
+            return apiCall('/categories/definitions', { method: 'GET' });
+        },
+        override: async (paymentId: string, category: string) => {
+            return apiCall('/categories/override', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId, category }),
+            });
+        },
+        getAnalytics: async (payments: any[]) => {
+            return apiCall('/categories/analytics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payments }),
+            });
+        },
+        export: async (payments: any[], category: string = 'all') => {
+            return apiCall('/categories/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payments, category }),
+            });
+        }
     }
 };
