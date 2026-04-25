@@ -25,6 +25,8 @@ import { flagsRouter } from './routes/flags.js';
 import { kybRouter } from './routes/kyb.js';
 import { batchRouter } from './routes/batch.js';
 import { relayerRouter } from './routes/relayer.js';
+import { paymentQueueRouter } from './routes/payment-queue.js';
+import { paymentQueue } from './queue/payment-queue.js';
 
 // Validate environment variables at startup
 validateEnv();
@@ -223,6 +225,7 @@ apiV1Router.use('/flags', flagsRouter);
 apiV1Router.use('/kyb', kybRouter);
 apiV1Router.use('/batch', batchRouter);
 apiV1Router.use('/relayer', relayerRouter);
+apiV1Router.use('/queue/payments', paymentQueueRouter);
 
 app.use('/api/v1', apiV1Router);
 
@@ -248,6 +251,7 @@ if (config.jobs.enabled) {
 registerDefaultProcessors();
 if (config.queue.enabled) {
   messageQueue.start();
+  paymentQueue.start();
 }
 
 const server = app.listen(config.server.port, () => {
@@ -272,6 +276,7 @@ const shutdown = (signal: string) => {
 
     try {
       messageQueue.stop();
+      paymentQueue.stop();
       console.log('Message queue stopped.');
     } catch (err) {
       console.error('Error stopping message queue:', err);
