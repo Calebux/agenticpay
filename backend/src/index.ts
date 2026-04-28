@@ -57,6 +57,8 @@ import { fraudDetectionRouter } from './routes/fraud-detection.js';
 import { bridgeRouter } from './routes/bridge.js';
 import { tokenizationRouter } from './routes/tokenization.js';
 import { startWebhookWorker, stopWebhookWorker } from './services/webhooks.js';
+import { analyticsService } from './services/analytics.js';
+import { createAnalyticsRouter } from './routes/analytics.js';
 import './events/projections.js';
 
 // Validate environment variables at startup
@@ -352,6 +354,12 @@ startWebhookWorker();
 const server = http.createServer(app);
 const wsServer = attachWebSocketServer({ server, options: { path: '/ws' } });
 app.use('/api/v1/websocket', createWebSocketRouter(wsServer));
+app.use('/api/v1/analytics', createAnalyticsRouter(wsServer));
+
+// Broadcast analytics snapshot every 30 seconds to all connected WebSocket clients
+const analyticsInterval = setInterval(() => {
+  wsServer.broadcast({ type: 'analytics:update', payload: analyticsService.snapshot() });
+}, 30_000);
 
 server.listen(config.server.port, () => {
   console.log(`AgenticPay backend running on port ${config.server.port} [${config.env}]`);
@@ -382,6 +390,8 @@ const shutdown = (signal: string) => {
     } catch (err) {
       console.error('Error stopping message queue:', err);
     }
+
+    clearInterval(analyticsInterval);
 
     try {
       wsServer.close().then(() => console.log('WebSocket server closed.'));

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Folder, FileText, Wallet, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Folder, FileText, Wallet, BarChart2, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ const navigation = [
   { name: 'Projects', href: '/dashboard/projects', icon: Folder },
   { name: 'Invoices', href: '/dashboard/invoices', icon: FileText },
   { name: 'Payments', href: '/dashboard/payments', icon: Wallet },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart2 },
 ];
 
 export function Sidebar() {
