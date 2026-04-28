@@ -37,8 +37,6 @@ import { pushRouter } from './routes/push.js';
 import { ipAllowlistRouter } from './routes/ip-allowlist.js';
 import { stripeRouter } from './routes/stripe.js';
 import { ipAllowlistMiddleware, initIpAllowlist } from './middleware/ip-allowlist.js';
-import { SecurityMiddleware, SecurityMonitor } from './middleware/security.js';
-import { sanitizeInput, contentSecurityPolicy } from './middleware/sanitize.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { auditRouter } from './routes/audit.js';
 import { hedgingRouter } from './routes/hedging.js';
@@ -54,6 +52,11 @@ import { fiatPaymentsRouter } from './routes/fiat-payments.js';
 import { paymentLinksRouter } from './routes/payment-links.js';
 import { projectsRouter } from './routes/projects.js';
 import { graphQLRouter, graphQLWsRouter } from './graphql/gateway.js';
+import { webhooksRouter } from './routes/webhooks.js';
+import { fraudDetectionRouter } from './routes/fraud-detection.js';
+import { bridgeRouter } from './routes/bridge.js';
+import { tokenizationRouter } from './routes/tokenization.js';
+import { startWebhookWorker, stopWebhookWorker } from './services/webhooks.js';
 import './events/projections.js';
 
 // Validate environment variables at startup
@@ -276,6 +279,10 @@ apiV1Router.use('/ip-allowlist', ipAllowlistRouter);
 apiV1Router.use('/push', pushRouter);
 // Stripe card payments
 apiV1Router.use('/stripe', stripeRouter);
+apiV1Router.use('/webhooks', webhooksRouter);
+apiV1Router.use('/fraud-detection', fraudDetectionRouter);
+apiV1Router.use('/bridge', bridgeRouter);
+apiV1Router.use('/tokenization', tokenizationRouter);
 
 app.use('/api/v1', ipAllowlistMiddleware(), apiV1Router);
 
@@ -340,6 +347,7 @@ if (config.queue.enabled) {
   messageQueue.start();
   paymentQueue.start();
 }
+startWebhookWorker();
 
 const server = http.createServer(app);
 const wsServer = attachWebSocketServer({ server, options: { path: '/ws' } });
@@ -369,6 +377,7 @@ const shutdown = (signal: string) => {
     try {
       messageQueue.stop();
       paymentQueue.stop();
+      stopWebhookWorker();
       console.log('Message queue stopped.');
     } catch (err) {
       console.error('Error stopping message queue:', err);
