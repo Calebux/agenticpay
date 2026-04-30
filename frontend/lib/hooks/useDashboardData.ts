@@ -24,6 +24,7 @@ export interface DashboardInvoice {
 export interface DashboardPayment {
     id: string;
     projectTitle: string;
+    description: string;
     amount: string;
     currency: string;
     status: 'completed' | 'pending' | 'failed';
@@ -31,7 +32,20 @@ export interface DashboardPayment {
     transactionHash?: string;
     type: 'milestone_payment' | 'full_payment' | 'refund';
     category: string;
-    description: string;
+}
+
+function categorizePayment(description: string, amount: number, type?: string): string {
+    const normalizedDescription = description.toLowerCase();
+
+    if (type === 'refund' || amount < 0 || normalizedDescription.includes('refund')) return 'refund';
+    if (normalizedDescription.includes('subscription') || normalizedDescription.includes('monthly') || normalizedDescription.includes('yearly') || normalizedDescription.includes('saas')) return 'subscription';
+    if (normalizedDescription.includes('invoice') || normalizedDescription.includes('inv-') || normalizedDescription.includes('billing')) return 'invoice';
+    if (normalizedDescription.includes('donation') || normalizedDescription.includes('gift') || normalizedDescription.includes('support')) return 'donation';
+    if (normalizedDescription.includes('payroll') || normalizedDescription.includes('salary') || normalizedDescription.includes('wage')) return 'payroll';
+    if (normalizedDescription.includes('software') || normalizedDescription.includes('api') || normalizedDescription.includes('license')) return 'software';
+    if (normalizedDescription.includes('infrastructure') || normalizedDescription.includes('cloud') || normalizedDescription.includes('aws') || normalizedDescription.includes('hosting')) return 'infrastructure';
+
+    return 'uncategorized';
 }
 
 export function useDashboardData() {
@@ -53,59 +67,52 @@ export function useDashboardData() {
     // Calculate Stats
     let activeProjects = 0;
     let completedProjects = 0;
+    let totalEarningsNum = 0;
+    let pendingPaymentsNum = 0;
 
     const invoices: DashboardInvoice[] = [];
     const payments: DashboardPayment[] = [];
-    const recentActivity: { type: string; title: string; description: string; time: string; amount: string }[] = []; // Unified activity feed
+    const recentActivity: { type: string; title: string; description: string; time: string; amount: string }[] = [];
 
     projects.forEach((project) => {
         const isFreelancer = address && project.freelancer.address.toLowerCase() === address.toLowerCase();
+        const amount = parseFloat(project.totalAmount);
 
         // Stats Logic
-        if (project.status === 'completed') {
+        if (project.status === 'completed' || project.status === 'verified') {
             completedProjects++;
+            if (isFreelancer) {
+                totalEarningsNum += amount;
+            }
         } else if (project.status === 'cancelled') {
             // do nothing
         } else {
             // Active
             activeProjects++;
             if (isFreelancer) {
-                // pending
+                pendingPaymentsNum += amount;
             }
         }
 
         // Invoices Logic
-        // If project has invoiceUri, treat as invoice generated.
-        if (project.invoiceUri || project.status === 'completed') {
+        if (project.invoiceUri || project.status === 'completed' || project.status === 'verified') {
             invoices.push({
                 id: `INV-${project.id}`,
                 projectId: project.id,
                 projectTitle: project.title,
-                milestoneTitle: 'Full Project', // 1 milestone logic
-                amount: project.totalAmount, // formatted string
+                milestoneTitle: 'Project Deliverable',
+                amount: project.totalAmount,
                 currency: project.currency,
-                status: project.status === 'completed' ? 'paid' : 'pending',
-                generatedAt: project.createdAt, // approximation
+                status: (project.status === 'completed' || project.status === 'verified') ? 'paid' : 'pending',
+                generatedAt: project.createdAt,
                 date: project.createdAt
             });
         }
 
         // Payments Logic
-        if (project.status === 'completed') {
+        if (project.status === 'completed' || project.status === 'verified') {
             const description = project.description || project.title || '';
-            const amount = parseFloat(project.totalAmount) || 0;
-            
-            // Basic client-side auto-categorization matching backend logic
-            let category = 'uncategorized';
-            const desc = description.toLowerCase();
-            if (desc.includes('subscription')) category = 'subscription';
-            else if (desc.includes('invoice')) category = 'invoice';
-            else if (desc.includes('donation')) category = 'donation';
-            else if (desc.includes('refund')) category = 'refund';
-            else if (desc.includes('payroll')) category = 'payroll';
-            else if (desc.includes('software')) category = 'software';
-            else if (desc.includes('infrastructure')) category = 'infrastructure';
-
+            const category = categorizePayment(description, amount);
             payments.push({
                 id: `PAY-${project.id}`,
                 projectTitle: project.title,
@@ -113,7 +120,7 @@ export function useDashboardData() {
                 amount: project.totalAmount,
                 currency: project.currency,
                 status: 'completed',
-                timestamp: new Date().toISOString(),
+                timestamp: project.createdAt,
                 type: 'full_payment',
                 category: category
             });
@@ -121,7 +128,7 @@ export function useDashboardData() {
             // Add to activity
             recentActivity.push({
                 type: 'payment',
-                title: 'Payment received',
+                title: 'Payment processed',
                 description: `${project.totalAmount} ${project.currency} for ${project.title} (${category})`,
                 time: 'Recently',
                 amount: project.totalAmount
@@ -131,14 +138,14 @@ export function useDashboardData() {
 
     return {
         stats: {
-            totalEarnings: '0', // Placeholder until we fix rawAmount
-            pendingPayments: '0',
+            totalEarnings: totalEarningsNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            pendingPayments: pendingPaymentsNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
             activeProjects,
             completedProjects
         },
         invoices,
         payments,
-        recentActivity,
+        recentActivity: recentActivity.sort((a, b) => new Date(b.time === 'Recently' ? Date.now() : b.time).getTime() - new Date(a.time === 'Recently' ? Date.now() : a.time).getTime()).slice(0, 5),
         loading: false
     };
 }

@@ -25,22 +25,34 @@ import {
   Bar,
 } from 'recharts';
 
+type CategoryAnalytics = {
+  category: string;
+  totalAmount: number;
+};
+
+type CategoryTrend = {
+  month: string;
+  [key: string]: number | string;
+};
+
 export default function DashboardPage() {
   const { stats, recentActivity, payments, loading } = useDashboardData();
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [trends, setTrends] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<CategoryAnalytics[] | null>(null);
+  const [trends, setTrends] = useState<CategoryTrend[]>([]);
 
   useEffect(() => {
-    if (payments && payments.length > 0) {
-      api.categories.getAnalytics(payments).then((data: any) => {
-        setAnalytics(data.analytics);
-        setTrends(data.trends);
-      });
+    if (payments.length === 0) {
+      return;
     }
+
+    api.categories.getAnalytics(payments).then((data: { analytics: CategoryAnalytics[]; trends: CategoryTrend[] }) => {
+      setAnalytics(data.analytics);
+      setTrends(data.trends);
+    });
   }, [payments]);
 
-  const distributionData = analytics 
-    ? analytics.map((a: any) => ({
+  const distributionData = analytics
+    ? analytics.map((a) => ({
         name: a.category,
         value: a.totalAmount,
         color: {
@@ -53,7 +65,7 @@ export default function DashboardPage() {
           infrastructure: '#6366f1',
           uncategorized: '#94a3b8',
         }[a.category] || '#94a3b8'
-      })).filter((a: any) => a.value > 0)
+      })).filter((a) => a.value > 0)
     : [
         { name: 'Completed Projects', value: 65, color: '#10b981' },
         { name: 'Pending Payments', value: 20, color: '#f59e0b' },
@@ -80,9 +92,21 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Welcome back! Here&apos;s your overview.</p>
+          <p className="text-gray-600 mt-1 dark:text-gray-400">Welcome back! Here&apos;s your overview.</p>
         </div>
         <DashboardStatsSkeleton />
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -91,10 +115,44 @@ export default function DashboardPage() {
     <div className="space-y-8 pb-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Welcome back! Here&apos;s your overview.</p>
+        <p className="text-gray-600 mt-1 dark:text-gray-400">Welcome back! Here&apos;s your overview.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {[{
+          title: 'Total Earnings', icon: <DollarSign className="h-4 w-4 text-gray-400" />, value: stats.totalEarnings, subtitle: 'All time', color: 'text-green-600', extraIcon: <TrendingUp className="h-3 w-3" />
+        }, {
+          title: 'Pending Payments', icon: <Clock className="h-4 w-4 text-gray-400" />, value: stats.pendingPayments, subtitle: 'Awaiting approval', color: 'text-yellow-600'
+        }, {
+          title: 'Active Projects', icon: <Folder className="h-4 w-4 text-gray-400" />, value: stats.activeProjects, subtitle: 'In progress', color: 'text-blue-600'
+        }, {
+          title: 'Completed', icon: <CheckCircle2 className="h-4 w-4 text-gray-400" />, value: stats.completedProjects, subtitle: 'Projects done', color: 'text-gray-600'
+        }].map((stat, idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + idx * 0.1 }}
+          >
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">{stat.title}</CardTitle>
+                {stat.icon}
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+                {stat.extraIcon ? (
+                  <p className={`text-xs ${stat.color} mt-1 flex items-center gap-1`}>
+                    {stat.extraIcon} {stat.subtitle}
+                  </p>
+                ) : (
+                  <p className={`text-xs ${stat.color} mt-1`}>{stat.subtitle}</p>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
       {/* Charts Section */}
@@ -184,7 +242,7 @@ export default function DashboardPage() {
                     innerRadius={70}
                     outerRadius={110}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                   >
                     {distributionData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -238,7 +296,7 @@ export default function DashboardPage() {
             {recentActivity.length === 0 ? (
               <p className="text-gray-500 text-sm">No recent activity found.</p>
             ) : (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {recentActivity.map((activity, idx) => (
                   <div
                     key={idx}
